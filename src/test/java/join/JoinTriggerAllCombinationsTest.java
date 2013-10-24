@@ -1,4 +1,4 @@
-package join;
+  package join;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -10,6 +10,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.FreeStyleProject;
 import hudson.model.Hudson;
+import java.io.IOException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import org.jvnet.hudson.test.HudsonTestCase;
 
 /**
  * @author wolfs
@@ -29,6 +31,14 @@ import java.util.logging.Logger;
 @RunWith(Parameterized.class)
 public class JoinTriggerAllCombinationsTest extends BasicJoinPluginTest {
     Logger LOG = Logger.getLogger(JoinTriggerAllCombinationsTest.class.getName());
+    
+    protected MavenModuleSet createMavenProject() throws IOException {
+        return createMavenProject(createUniqueProjectName());
+    }
+
+    protected MavenModuleSet createMavenProject(String name) throws IOException {
+        return hudson.createProject(MavenModuleSet.class, name);
+    }
 
     public static Map<Class<? extends AbstractProject<?,?>>, Function<JoinTriggerAllCombinationsTest,AbstractProject<?,?>>> projectType2Supplier =
             ImmutableMap.<Class<? extends AbstractProject<?,?>>, Function<JoinTriggerAllCombinationsTest,AbstractProject<?,?>>>of(
@@ -47,7 +57,7 @@ public class JoinTriggerAllCombinationsTest extends BasicJoinPluginTest {
                         @Override
                         public AbstractProject<?, ?> apply(JoinTriggerAllCombinationsTest from) {
                             try {
-                                MavenModuleSet mavenProject = from.createMavenProject();
+                                MavenModuleSet mavenProject = ((HudsonTestCase)from).hudson.createProject(MavenModuleSet.class, from.createUniqueProjectName());
                                 mavenProject.setQuietPeriod(0);
                                 mavenProject.setScm(new ExtractResourceSCM(getClass().getResource("maven-empty-mod.zip")));
 
@@ -120,7 +130,7 @@ public class JoinTriggerAllCombinationsTest extends BasicJoinPluginTest {
         AbstractProject<?,?> joinProject = projectType2Supplier.get(joinProjClass).apply(this);
         addProjectToSplitProject(splitProject, intProject);
         addJoinTriggerToSplitProject(splitProject, joinProject);
-        Hudson.getInstance().rebuildDependencyGraph();
+        hudson.rebuildDependencyGraph();
         final AbstractBuild<?,?> splitBuild = splitProject.scheduleBuild2(0, new Cause.UserCause()).get();
         waitUntilNoActivityUpTo(120*1000);
         AbstractBuild<?, ?> intBuild = getUniqueBuild(intProject);

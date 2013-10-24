@@ -2,6 +2,7 @@ package join;
 
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BaseBuildableProject;
 import hudson.model.Descriptor;
 import hudson.model.FreeStyleProject;
 import hudson.model.Saveable;
@@ -95,13 +96,13 @@ public abstract class BasicJoinPluginTest extends HudsonTestCase {
 
     protected FreeStyleProject createFailingFreeStyleProject() throws Exception {
         final FreeStyleProject project = createFreeStyleProjectWithNoQuietPeriod();
-        project.getPublishersList().add(ResultSetter.FAILURE());
+        project.addPublisher(ResultSetter.FAILURE());
         return project;
     }
 
     protected FreeStyleProject createUnstableFreeStyleProject() throws Exception {
         final FreeStyleProject project = createFreeStyleProjectWithNoQuietPeriod();
-        project.getPublishersList().add(ResultSetter.UNSTABLE());
+        project.addPublisher(ResultSetter.UNSTABLE());
         return project;
     }
 
@@ -118,8 +119,13 @@ public abstract class BasicJoinPluginTest extends HudsonTestCase {
         for (AbstractProject<?, ?> project : joinProjects) {
             projects.add(project.getName());
         }
-        splitProject.getPublishersList().add(new JoinTrigger(new DescribableList<Publisher, Descriptor<Publisher>>(
-                Saveable.NOOP), StringUtils.join(projects,","), false));
+        JoinTrigger joinTrigger = new JoinTrigger(new DescribableList<Publisher, Descriptor<Publisher>>(
+                Saveable.NOOP), StringUtils.join(projects,","), false);
+        if (splitProject instanceof BaseBuildableProject){
+           ((BaseBuildableProject)splitProject).addPublisher(joinTrigger);
+        }else{
+            splitProject.getPublishersList().add(joinTrigger);
+        }
     }
 
     public static void addParameterizedJoinTriggerToProject(AbstractProject<?,?> splitProject, AbstractProject<?,?> joinProject, AbstractBuildParameters... params) throws Exception {
@@ -128,16 +134,34 @@ public abstract class BasicJoinPluginTest extends HudsonTestCase {
 
     public static void addParameterizedJoinTriggerToProject(AbstractProject<?,?> splitProject, AbstractProject<?,?> joinProject, ResultCondition condition, AbstractBuildParameters... params) throws Exception {
         final BuildTriggerConfig config = new hudson.plugins.parameterizedtrigger.BuildTriggerConfig(joinProject.getName(), condition, params);
-        splitProject.getPublishersList().add(new JoinTrigger(new DescribableList<Publisher, Descriptor<Publisher>>(
-                Saveable.NOOP, Collections.singletonList(new hudson.plugins.parameterizedtrigger.BuildTrigger(config))),"",false));
+        
+        hudson.plugins.parameterizedtrigger.BuildTrigger buildTrigger = new hudson.plugins.parameterizedtrigger.BuildTrigger(config);
+        
+        JoinTrigger joinTrigger =  new JoinTrigger(new DescribableList<Publisher, Descriptor<Publisher>>(
+                Saveable.NOOP, Collections.singletonList(buildTrigger)),"",false);
+        if (splitProject instanceof BaseBuildableProject){
+           ((BaseBuildableProject)splitProject).addPublisher(joinTrigger);
+        }else{
+            splitProject.getPublishersList().add(joinTrigger);
+        }
     }
 
     public static void addProjectToSplitProject(AbstractProject<?,?> splitProject, AbstractProject<?,?> projectToAdd) throws Exception {
-        splitProject.getPublishersList().add(new BuildTrigger(projectToAdd.getName(), false));
+        BuildTrigger buildTrigger =  new BuildTrigger(projectToAdd.getName(), false);
+        if (splitProject instanceof BaseBuildableProject){
+           ((BaseBuildableProject)splitProject).addPublisher(buildTrigger);
+        }else{
+            splitProject.getPublishersList().add(buildTrigger);
+        }
     }
 
     public static void addProjectToSplitProject(AbstractProject<?,?> splitProject, String projectToAdd) throws Exception {
-        splitProject.getPublishersList().add(new BuildTrigger(projectToAdd, false));
+        BuildTrigger buildTrigger =  new BuildTrigger(projectToAdd, false);
+        if (splitProject instanceof BaseBuildableProject){
+           ((BaseBuildableProject)splitProject).addPublisher(buildTrigger);
+        }else{
+            splitProject.getPublishersList().add(buildTrigger);
+        }
     }
 
     public static <T extends AbstractProject<?,?>> void addProjectsToSplitProject(AbstractProject<?,?> splitProject, List<T> projectsToAdd) throws Exception {

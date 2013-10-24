@@ -146,7 +146,7 @@ public class JoinTriggerTest extends BasicJoinPluginTest {
                 new BuildTriggerConfig(intermediateProject.getName(),
                         ResultCondition.SUCCESS,
                         new PredefinedBuildParameters("KEY=value"));
-        splitProject.getPublishersList().add(
+        splitProject.addPublisher(
                 new hudson.plugins.parameterizedtrigger.BuildTrigger(buildTriggerConfig));
 
         hudson.rebuildDependencyGraph();
@@ -199,7 +199,7 @@ public class JoinTriggerTest extends BasicJoinPluginTest {
                 new DescribableList<Publisher, Descriptor<Publisher>>(Saveable.NOOP),
                 joinProject.getName(),
                 false);
-        splitProject.getPublishersList().add(before);
+        splitProject.addPublisher(before);
         final WebClient webClient = createWebClient();
         webClient.setThrowExceptionOnFailingAjax(false);
         final HtmlPage configPage = webClient.getPage(splitProject, "configure");

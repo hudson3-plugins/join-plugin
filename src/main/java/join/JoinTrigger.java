@@ -43,6 +43,7 @@ import hudson.model.DependencyGraph;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
 import hudson.model.Items;
 import hudson.model.Project;
 import hudson.model.Run;
@@ -129,7 +130,7 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
 
         for (AbstractProject<?,?> downstreamProject: downstreamProjects) {
             for (BuildTriggerConfig config : getBuildTriggerConfigs(joinPublishers)) {
-                for (AbstractProject<?,?> joinProject : config.getProjectList(null)) {
+                for (AbstractProject<?,?> joinProject : config.getProjectList(owner.getParent(), null)) {
                     ParameterizedJoinDependency dependency =
                             new ParameterizedJoinDependency(downstreamProject, joinProject, owner, config);
                     graph.addDependency(dependency);
@@ -154,7 +155,7 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
         }
 
         for (AbstractProject<?,?> project :
-                getParameterizedDownstreamProjects(build.getProject().getPublishersList(), env)) {
+                   getParameterizedDownstreamProjects(build.getProject().getParent(), build.getProject().getPublishersList(), env)) {
             if (!project.isDisabled()) {
                 ret.add(project.getName());
             }
@@ -163,11 +164,12 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
     }
 
     private List<AbstractProject<?,?>> getParameterizedDownstreamProjects(
+           ItemGroup context,
             DescribableList<Publisher,Descriptor<Publisher>> publishers, EnvVars env) {
         List<AbstractProject<?,?>> ret = new ArrayList<AbstractProject<?,?>>();
         for(hudson.plugins.parameterizedtrigger.BuildTriggerConfig config :
                 getBuildTriggerConfigs(publishers)) {
-            for (AbstractProject<?,?> project : config.getProjectList(env)) {
+            for (AbstractProject<?,?> project : config.getProjectList(context, env)) {
                 ret.add(project);
             }
         }
@@ -177,8 +179,8 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
     private List<BuildTriggerConfig> getBuildTriggerConfigs(
             DescribableList<Publisher,Descriptor<Publisher>> publishers) {
         List<BuildTriggerConfig> ret = new ArrayList<BuildTriggerConfig>();
-        Plugin parameterizedTrigger = Hudson.getInstance().getPlugin("parameterized-trigger");
-        if (parameterizedTrigger != null) {
+//        Plugin parameterizedTrigger = Hudson.getInstance().getPlugin("parameterized-trigger");
+//        if (parameterizedTrigger != null) {
             hudson.plugins.parameterizedtrigger.BuildTrigger buildTrigger =
                 publishers.get(hudson.plugins.parameterizedtrigger.BuildTrigger.class);
             if (buildTrigger != null) {
@@ -186,23 +188,24 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
                     ret.add(config);
                 }
             }
-        }
+//        }
         return ret;
     }
 
     private List<AbstractProject<?,?>> getDownstreamExtDownstream(
+            ItemGroup context,
             DescribableList<Publisher,Descriptor<Publisher>> publishers) {
         List<AbstractProject<?,?>> ret = new ArrayList<AbstractProject<?, ?>>();
-        Plugin extDownstream = Hudson.getInstance().getPlugin("downstream-ext");
-        if (extDownstream != null) {
+//        Plugin extDownstream = Hudson.getInstance().getPlugin("downstream-ext");
+//        if (extDownstream != null) {
             DownstreamTrigger buildTrigger =
                 publishers.get(DownstreamTrigger.class);
             if (buildTrigger != null) {
-                for (AbstractProject<?,?> project : buildTrigger.getChildProjects()) {
+                for (AbstractProject<?,?> project : buildTrigger.getChildProjects(context)) {
                     ret.add(project);
                 }
             }
-        }
+//        }
         return ret;
     }
 
@@ -214,8 +217,8 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
 
     public List<AbstractProject<?,?>> getAllDownstream(AbstractProject<?,?> project, EnvVars env) {
         List<AbstractProject<?,?>> downstream = getBuildTriggerDownstream(project);
-        downstream.addAll(getParameterizedDownstreamProjects(project.getPublishersList(), env));
-        downstream.addAll(getDownstreamExtDownstream(project.getPublishersList()));
+        downstream.addAll(getParameterizedDownstreamProjects(project.getParent(), project.getPublishersList(), env));
+        downstream.addAll(getDownstreamExtDownstream(project.getParent(), project.getPublishersList()));
         return downstream;
     }
 
@@ -319,14 +322,14 @@ public class JoinTrigger extends Recorder implements DependecyDeclarer, MatrixAg
 
         public List<Descriptor<Publisher>> getApplicableDescriptors() {
             ArrayList<Descriptor<Publisher>> list = new ArrayList<Descriptor<Publisher>>();
-            Plugin parameterizedTrigger = Hudson.getInstance().getPlugin("parameterized-trigger");
-            if (parameterizedTrigger != null) {
+//            Plugin parameterizedTrigger = Hudson.getInstance().getPlugin("parameterized-trigger");
+//            if (parameterizedTrigger != null) {
                 list.add(Hudson.getInstance().getDescriptorByType(hudson.plugins.parameterizedtrigger.BuildTrigger.DescriptorImpl.class));
-            }
-            Plugin copyArchiver = Hudson.getInstance().getPlugin("copyarchiver");
-            if (copyArchiver != null) {
+//            }
+//            Plugin copyArchiver = Hudson.getInstance().getPlugin("copyarchiver");
+//            if (copyArchiver != null) {
                 list.add(Hudson.getInstance().getDescriptorByType(com.thalesgroup.hudson.plugins.copyarchiver.CopyArchiverPublisher.CopyArchiverDescriptor.class));
-            }
+//            }
             // See issue 4384.  Supporting the mailer here breaks its use as the regular post-build action.
             //list.add(Hudson.getInstance().getDescriptorByType(hudson.tasks.Mailer.DescriptorImpl.class));
             return list;
